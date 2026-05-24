@@ -1,0 +1,51 @@
+[project]
+name = "claude-coach"
+version = "0.1.0"
+description = "Personal hybrid training coach with Garmin integration"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "structlog>=24.4",
+    "anthropic>=0.40",
+    "openai>=1.55",
+    "garth>=0.4",
+    "resend>=2.4",
+    "apscheduler>=3.10",
+    "httpx>=0.27",
+    "pyyaml>=6.0.3",
+    "pypdfium2>=5.8.0",
+    "pillow>=12.2.0",
+    "curl-cffi>=0.15.0",
+    "itsdangerous>=2.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["claude_coach"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,8 @@
+id: leg-press-45
+name: Leg press 45
+aliases:
+  - leg press
+  - leg press 45 graus
+primary_muscle_group: quads
+secondary_muscle_groups: [glutes, hamstrings]
+equipment: machine

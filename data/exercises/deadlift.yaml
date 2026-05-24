@@ -1,0 +1,10 @@
+id: deadlift
+name: Levantamento terra
+aliases:
+  - terra
+  - terra deadlift
+  - deadlift
+  - levantamento terra convencional
+primary_muscle_group: hamstrings
+secondary_muscle_groups: [glutes, lower_back, back, core]
+equipment: barbell

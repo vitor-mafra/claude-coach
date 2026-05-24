@@ -1,0 +1,54 @@
+# ─── Secrets / credentials ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Local agent state (Claude Code, subagents) ───────────────────────────────
+.claude/
+.agents/
+
+# ─── Personal training data ───────────────────────────────────────────────────
+# Profile is single-user. Don't commit name / birthdate / etc.
+data/profile.yaml
+
+# Parsed plans (PDF outputs + reviews) carry your prescription. Keep local.
+data/plans/*
+!data/plans/.gitkeep
+
+# Weekly reports contain personal training + Garmin trends.
+data/reports/*
+!data/reports/.gitkeep
+
+# SQLite + raw payloads + Garmin tokens (regenerable / sensitive).
+data/metrics.db
+data/metrics.db-journal
+data/metrics.db-shm
+data/metrics.db-wal
+data/garmin_raw/
+data/garmin_tokens/
+
+# Original PDFs of training plans.
+*.pdf
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Node / Vite ──────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+
+# Frontend build copied into backend for single-container deploy.
+backend/claude_coach/static/
+
+# ─── OS / IDE ─────────────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp

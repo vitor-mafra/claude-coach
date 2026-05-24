@@ -1,0 +1,8 @@
+id: cadeira-abdutora
+name: Cadeira abdutora
+aliases:
+  - abdutora
+  - hip abduction machine
+primary_muscle_group: abductors
+secondary_muscle_groups: [glutes]
+equipment: machine
