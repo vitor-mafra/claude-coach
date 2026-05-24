@@ -4,10 +4,10 @@ from pathlib import Path
 
 import yaml
 
-from claude_coach.config import REPO_ROOT
+from claude_coach.config import settings
 from claude_coach.domain.plan import Plan
 
-PLANS_DIR: Path = REPO_ROOT / "data" / "plans"
+PLANS_DIR: Path = settings.data_dir / "plans"
 
 
 def _slug_dirs() -> list[Path]:

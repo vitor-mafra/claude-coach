@@ -1,0 +1,40 @@
+.git
+.gitignore
+.github
+.env
+.env.*
+.claude
+.agents
+
+# Personal / runtime data
+data/profile.yaml
+data/plans
+data/reports
+data/metrics.db*
+data/garmin_raw
+data/garmin_tokens
+
+# Local caches
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+
+# Frontend artifacts (rebuilt inside the image)
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Backend static (generated during build)
+backend/claude_coach/static
+
+# OS / IDE
+.DS_Store
+.idea
+.vscode
+
+# Local docs not needed at runtime
+*.md
+!README.md

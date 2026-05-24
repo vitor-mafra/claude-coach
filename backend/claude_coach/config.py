@@ -1,9 +1,14 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# DATA_DIR is resolved before Settings instantiates so paths derived from it
+# (database_url, garmin_tokens_dir) can use it as their default.
+_DATA_DIR = Path(os.environ.get("DATA_DIR") or (REPO_ROOT / "data")).resolve()
 
 
 class Settings(BaseSettings):
@@ -13,7 +18,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str = f"sqlite:///{REPO_ROOT / 'data' / 'metrics.db'}"
+    # Root for all writable / personal data. On Railway, mount a volume here.
+    data_dir: Path = _DATA_DIR
+
+    database_url: str = f"sqlite:///{_DATA_DIR / 'metrics.db'}"
     cors_origins: list[str] = ["http://localhost:5173"]
 
     anthropic_api_key: str | None = None
@@ -21,7 +29,7 @@ class Settings(BaseSettings):
 
     garmin_email: str | None = None
     garmin_password: str | None = None
-    garmin_tokens_dir: Path = REPO_ROOT / "data" / "garmin_tokens"
+    garmin_tokens_dir: Path = _DATA_DIR / "garmin_tokens"
 
     resend_api_key: str | None = None
     resend_from_email: str | None = None

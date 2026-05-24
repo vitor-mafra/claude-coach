@@ -4,10 +4,10 @@ from pathlib import Path
 
 import yaml
 
-from claude_coach.config import REPO_ROOT
+from claude_coach.config import settings
 from claude_coach.domain.profile import Profile
 
-PROFILE_PATH: Path = REPO_ROOT / "data" / "profile.yaml"
+PROFILE_PATH: Path = settings.data_dir / "profile.yaml"
 
 
 def load_profile(path: Path = PROFILE_PATH) -> Profile | None:

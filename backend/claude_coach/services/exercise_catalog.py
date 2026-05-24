@@ -4,10 +4,10 @@ from pathlib import Path
 
 import yaml
 
-from claude_coach.config import REPO_ROOT
+from claude_coach.config import settings
 from claude_coach.domain.exercise import Exercise
 
-CATALOG_DIR: Path = REPO_ROOT / "data" / "exercises"
+CATALOG_DIR: Path = settings.data_dir / "exercises"
 
 
 class ExerciseCatalog:

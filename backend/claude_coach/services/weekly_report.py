@@ -36,7 +36,7 @@ from sqlalchemy.orm import Session as DbSession
 from claude_coach.adapters.llm.base import Message
 from claude_coach.adapters.llm.router import LLMRouter
 from claude_coach.adapters.llm.router import router as default_router
-from claude_coach.config import REPO_ROOT
+from claude_coach.config import settings
 from claude_coach.db.models import (
     DailyMetric,
     GarminActivity,
@@ -49,7 +49,7 @@ from claude_coach.services.sessions import WEEKDAY_BY_INDEX, load_active_plan
 
 log = structlog.get_logger(__name__)
 
-REPORTS_DIR = REPO_ROOT / "data" / "reports"
+REPORTS_DIR = settings.data_dir / "reports"
 
 WEEKLY_REPORT_SYSTEM = textwrap.dedent(
     """\

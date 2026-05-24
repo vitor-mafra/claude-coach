@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from claude_coach import __version__
 from claude_coach.api import (
@@ -56,3 +59,20 @@ app.include_router(sessions.router, prefix="/api")
 app.include_router(briefing.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+
+
+# ─── Serve frontend SPA when present (production single-container deploy) ─────
+_STATIC_DIR = Path(__file__).parent / "static"
+if _STATIC_DIR.exists():
+    _INDEX_HTML = _STATIC_DIR / "index.html"
+
+    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str):
+        # Anything not /api/* falls through to here. Serve the static file
+        # if present, else hand the SPA's index.html to the client router.
+        candidate = _STATIC_DIR / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(_INDEX_HTML)
