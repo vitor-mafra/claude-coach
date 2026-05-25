@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
+from claude_coach.api.security import rate_limit_expensive
 from claude_coach.db.models import Insight
 from claude_coach.db.session import get_db
 from claude_coach.services.briefing import service as briefing_service
@@ -47,7 +48,11 @@ def _to_response(row: Insight, include_context: bool = True) -> BriefingResponse
     )
 
 
-@router.post("/today", response_model=BriefingResponse)
+@router.post(
+    "/today",
+    response_model=BriefingResponse,
+    dependencies=[Depends(rate_limit_expensive("briefing"))],
+)
 def generate(
     db: Db,
     date: date_cls | None = Query(default=None, description="defaults to today"),

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
 from claude_coach.adapters.email import EmailError, adapter as email_adapter, markdown_to_html
+from claude_coach.api.security import rate_limit_expensive
 from claude_coach.db.models import Insight
 from claude_coach.db.session import get_db
 from claude_coach.services.weekly_report import service as report_service
@@ -50,7 +51,11 @@ def _to_response(row: Insight, with_context: bool = True) -> ReportResponse:
     )
 
 
-@router.post("/generate", response_model=ReportResponse)
+@router.post(
+    "/generate",
+    response_model=ReportResponse,
+    dependencies=[Depends(rate_limit_expensive("weekly_report"))],
+)
 def generate(
     db: Db,
     week_start: date_cls | None = Query(default=None),

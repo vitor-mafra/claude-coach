@@ -53,6 +53,15 @@ class Settings(BaseSettings):
     auth_login_max_attempts: int = 5
     auth_login_window_seconds: int = 60
 
+    # Production hardening
+    expose_docs: bool = True  # set False to hide /docs, /redoc, /openapi.json
+    add_security_headers: bool = False  # set True in production
+    max_upload_bytes: int = 8 * 1024 * 1024  # 8 MB cap on PDF / file uploads
+    # Per-endpoint rate limits (calls per window per IP) to throttle costly
+    # actions even when authed. Login already has its own limiter.
+    expensive_op_max_per_window: int = 6
+    expensive_op_window_seconds: int = 60
+
 
 @lru_cache
 def get_settings() -> Settings:

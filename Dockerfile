@@ -50,6 +50,14 @@ COPY data/exercises ./data/exercises
 # Copy built frontend into the location FastAPI serves from.
 COPY --from=frontend /app/dist /app/backend/claude_coach/static
 
+# Create a non-root user and give it ownership of /app and /data.
+# Volume permissions on Railway are inherited from the mount target — chowning
+# /data here so the running user can write before any volume content exists.
+RUN useradd --create-home --shell /bin/sh --uid 10001 appuser \
+ && mkdir -p /data \
+ && chown -R appuser:appuser /app /data
+
+USER appuser
 WORKDIR /app/backend
 
 # Entry: apply migrations, then start uvicorn on Railway-provided $PORT

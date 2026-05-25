@@ -19,6 +19,7 @@ from claude_coach.api import (
     plans,
     profile,
     reports,
+    security,
     sessions,
 )
 from claude_coach.config import settings
@@ -36,7 +37,16 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
         scheduler_shutdown()
 
 
-app = FastAPI(title="Claude Coach", version=__version__, lifespan=lifespan)
+# Hide OpenAPI surface from unauthenticated visitors in prod.
+_docs_kwargs = (
+    {}
+    if settings.expose_docs
+    else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+)
+
+app = FastAPI(
+    title="Claude Coach", version=__version__, lifespan=lifespan, **_docs_kwargs
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,6 +57,7 @@ app.add_middleware(
 )
 
 app.middleware("http")(auth.auth_middleware)
+app.middleware("http")(security.security_headers_middleware)
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(health.router, prefix="/api")

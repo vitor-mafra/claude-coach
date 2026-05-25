@@ -20,6 +20,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DbSession
 
 from claude_coach.adapters.garmin_login import LoginError, login as garmin_login
+from claude_coach.api.security import rate_limit_expensive
 from claude_coach.config import settings
 from claude_coach.db.models import (
     DailyMetric,
@@ -110,7 +111,11 @@ class GarminConnectResponse(BaseModel):
     last_attempt_at: datetime
 
 
-@router.post("/garmin/connect", response_model=GarminConnectResponse)
+@router.post(
+    "/garmin/connect",
+    response_model=GarminConnectResponse,
+    dependencies=[Depends(rate_limit_expensive("garmin_connect"))],
+)
 def garmin_connect(payload: GarminConnectRequest | None = None) -> GarminConnectResponse:
     payload = payload or GarminConnectRequest()
     email = payload.email or settings.garmin_email
@@ -188,7 +193,11 @@ class GarminBackfillResponse(BaseModel):
     errors: list[dict[str, Any]]
 
 
-@router.post("/garmin/backfill", response_model=GarminBackfillResponse)
+@router.post(
+    "/garmin/backfill",
+    response_model=GarminBackfillResponse,
+    dependencies=[Depends(rate_limit_expensive("garmin_backfill"))],
+)
 def garmin_backfill(payload: GarminBackfillRequest, db: Db) -> GarminBackfillResponse:
     from datetime import date as date_cls, timedelta
 
