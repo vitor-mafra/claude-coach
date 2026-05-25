@@ -179,6 +179,35 @@ def garmin_disconnect() -> None:
             p.unlink()
 
 
+class GarminTokenUpload(BaseModel):
+    """Workaround for environments where Garmin blocks the SSO from a cloud IP
+    (Railway, etc): upload OAuth tokens obtained via a successful local login.
+    Writes oauth1_token.json + oauth2_token.json to garmin_tokens_dir."""
+
+    oauth1_token: dict[str, Any]
+    oauth2_token: dict[str, Any]
+
+
+@router.post(
+    "/garmin/upload-tokens",
+    response_model=GarminStatusResponse,
+    dependencies=[Depends(rate_limit_expensive("garmin_token_upload"))],
+)
+def garmin_upload_tokens(payload: GarminTokenUpload) -> GarminStatusResponse:
+    import json as _json
+
+    d = settings.garmin_tokens_dir
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "oauth1_token.json").write_text(_json.dumps(payload.oauth1_token))
+    (d / "oauth2_token.json").write_text(_json.dumps(payload.oauth2_token))
+    return GarminStatusResponse(
+        connected=True,
+        tokens_dir=str(d),
+        has_oauth2_token=True,
+        has_oauth1_token=True,
+    )
+
+
 # ─── Garmin sync helpers (manual backfill from the UI) ───────────────────────
 
 
