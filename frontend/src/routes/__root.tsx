@@ -105,6 +105,9 @@ function Shell() {
         <Link to="/profile" className={linkClass}>
           Perfil
         </Link>
+        <Link to="/settings" className={linkClass}>
+          Settings
+        </Link>
         <div className="flex-1" />
         <UsageBadge />
         <HealthBadge />

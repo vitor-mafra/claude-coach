@@ -15,6 +15,7 @@ import { Route as loginRoute } from "./routes/login";
 import { Route as planDetailRoute } from "./routes/plan-detail";
 import { Route as plansRoute } from "./routes/plans";
 import { Route as profileRoute } from "./routes/profile";
+import { Route as settingsRoute } from "./routes/settings";
 import { Route as sessionDetailRoute } from "./routes/session-detail";
 import { Route as sessionNewRoute } from "./routes/session-new";
 import { Route as usageRoute } from "./routes/usage";
@@ -35,6 +36,7 @@ const routeTree = rootRoute.addChildren([
   reportsRoute,
   reportDetailRoute,
   loginRoute,
+  settingsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

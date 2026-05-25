@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from claude_coach import __version__
 from claude_coach.api import (
+    admin,
     auth,
     briefing,
     dashboard,
@@ -59,6 +60,7 @@ app.include_router(sessions.router, prefix="/api")
 app.include_router(briefing.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 
 # ─── Serve frontend SPA when present (production single-container deploy) ─────

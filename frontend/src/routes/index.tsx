@@ -11,6 +11,7 @@ import {
 import { WeekGrid } from "@/components/WeekGrid";
 import {
   api,
+  apiAdmin,
   apiDashboard,
   apiGarmin,
   apiWorkouts,
@@ -122,6 +123,12 @@ function HomePage() {
   const dashboard = useQuery({ queryKey: ["dashboard"], queryFn: apiDashboard.get });
   const profile = useQuery({ queryKey: ["profile"], queryFn: api.profile.get });
   const plans = useQuery({ queryKey: ["plans"], queryFn: api.plans.list });
+  const systemStatus = useQuery({ queryKey: ["admin-system"], queryFn: apiAdmin.system });
+  const needsSetup =
+    systemStatus.data &&
+    (!systemStatus.data.profile_configured ||
+      systemStatus.data.plans_count === 0 ||
+      !systemStatus.data.garmin_connected);
   const activeSlug = plans.data?.[0];
   const workoutsToday = useQuery({
     queryKey: ["workouts-today-home"],
@@ -168,6 +175,24 @@ function HomePage() {
           {refresh.isPending ? "Sincronizando…" : "↻ Atualizar Garmin"}
         </button>
       </header>
+
+      {needsSetup && (
+        <div className="border border-amber-900/40 bg-amber-950/20 rounded-lg p-4 text-sm flex flex-wrap items-center gap-3">
+          <span className="text-amber-200 font-semibold">Setup incompleto:</span>
+          <span className="text-zinc-300 text-xs">
+            {!systemStatus.data?.profile_configured && "Perfil "}
+            {!systemStatus.data?.garmin_connected && "Garmin "}
+            {systemStatus.data?.plans_count === 0 && "Plano "}
+            pendente.
+          </span>
+          <Link
+            to="/settings"
+            className="ml-auto px-3 py-1.5 rounded bg-orange-600 hover:bg-orange-500 text-sm font-semibold text-white"
+          >
+            Abrir Settings →
+          </Link>
+        </div>
+      )}
 
       {dashboard.isLoading ? (
         <p className="text-zinc-500 text-sm">Carregando…</p>

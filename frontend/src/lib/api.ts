@@ -197,6 +197,39 @@ export const apiAuth = {
   logout: () => sendJSON<AuthStatus>("/auth/logout", "POST"),
 };
 
+export type SystemStatus = Schemas["SystemStatus"];
+export type GarminConnectResponse = Schemas["GarminConnectResponse"];
+export type GarminStatusResponse = Schemas["GarminStatusResponse"];
+export type GarminBackfillResponse = Schemas["GarminBackfillResponse"];
+export type PlanUploadResponse = Schemas["PlanUploadResponse"];
+
+export const apiAdmin = {
+  system: () => getJSON<SystemStatus>("/admin/system"),
+  garminStatus: () => getJSON<GarminStatusResponse>("/admin/garmin/status"),
+  garminConnect: (params?: { email?: string; password?: string; mfaCode?: string }) =>
+    sendJSON<GarminConnectResponse>("/admin/garmin/connect", "POST", {
+      email: params?.email ?? null,
+      password: params?.password ?? null,
+      mfa_code: params?.mfaCode ?? null,
+    }),
+  garminDisconnect: () => sendJSON<void>("/admin/garmin/tokens", "DELETE"),
+  garminBackfill: (start: string, end: string) =>
+    sendJSON<GarminBackfillResponse>("/admin/garmin/backfill", "POST", { start, end }),
+  uploadPlan: async (file: File, slug?: string, skipSchedule = false) => {
+    const fd = new FormData();
+    fd.append("pdf", file);
+    if (slug) fd.append("slug", slug);
+    if (skipSchedule) fd.append("skip_schedule", "true");
+    const r = await fetch("/api/plans/upload", {
+      method: "POST",
+      body: fd,
+      credentials: "include",
+    });
+    if (!r.ok) throw new HttpError(r.status, `upload: ${r.status} ${await r.text()}`);
+    return (await r.json()) as PlanUploadResponse;
+  },
+};
+
 export const apiReports = {
   generate: (params?: { weekStart?: string; weekEnd?: string; sendEmail?: boolean }) => {
     const qs = new URLSearchParams();

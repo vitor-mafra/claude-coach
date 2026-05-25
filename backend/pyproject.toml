@@ -22,6 +22,7 @@ dependencies = [
     "pillow>=12.2.0",
     "curl-cffi>=0.15.0",
     "itsdangerous>=2.2.0",
+    "python-multipart>=0.0.29",
 ]
 
 [dependency-groups]
