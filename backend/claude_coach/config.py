@@ -20,6 +20,10 @@ class Settings(BaseSettings):
 
     # Root for all writable / personal data. On Railway, mount a volume here.
     data_dir: Path = _DATA_DIR
+    # Exercise catalog is generic seed data. In the container it lives in the
+    # baked image (/app/data/exercises); locally it sits next to the rest of
+    # data/. Override `EXERCISES_DIR` if you maintain a custom catalog.
+    exercises_dir: Path = REPO_ROOT / "data" / "exercises"
 
     database_url: str = f"sqlite:///{_DATA_DIR / 'metrics.db'}"
     cors_origins: list[str] = ["http://localhost:5173"]

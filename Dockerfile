@@ -30,7 +30,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv \
     PATH=/app/.venv/bin:$PATH \
-    DATA_DIR=/data
+    DATA_DIR=/data \
+    EXERCISES_DIR=/app/data/exercises
 
 WORKDIR /app
 

@@ -7,7 +7,7 @@ import yaml
 from claude_coach.config import settings
 from claude_coach.domain.exercise import Exercise
 
-CATALOG_DIR: Path = settings.data_dir / "exercises"
+CATALOG_DIR: Path = settings.exercises_dir
 
 
 class ExerciseCatalog:
