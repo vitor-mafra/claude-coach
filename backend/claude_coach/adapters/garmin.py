@@ -57,6 +57,16 @@ class FetchedVO2Max:
 
 
 @dataclass(frozen=True)
+class FetchedHRZones:
+    """User's configured HR zones from Garmin Connect (default sport profile)."""
+    training_method: str  # "HR_MAX" | "HR_RESERVE" | "LACTATE_THRESHOLD"
+    max_hr: int
+    resting_hr: int | None
+    lactate_threshold_hr: int | None
+    zone_floors: dict[str, int]  # {"Z1": 103, "Z2": 124, ...}
+
+
+@dataclass(frozen=True)
 class FetchedWeight:
     date: date_cls
     weight_kg: float | None
@@ -311,6 +321,37 @@ class GarminAdapter:
             weight_kg=weight_kg,
             body_fat_pct=body_fat,
             lean_mass_kg=lean_kg,
+        )
+
+
+    # ----- HR Zones -----
+
+    def fetch_hr_zones(self) -> FetchedHRZones | None:
+        """Read the user's HR zone configuration (default/all-sport profile)."""
+        self.ensure_session()
+        try:
+            resp = garth.connectapi("/biometric-service/heartRateZones")
+        except Exception as exc:
+            log.warning("garmin.hr_zones.fail", error=str(exc))
+            return None
+        if not resp:
+            return None
+        # Endpoint returns a list keyed by sport; pick the DEFAULT profile.
+        entry = next((z for z in resp if z.get("sport") == "DEFAULT"), resp[0])
+        max_hr = entry.get("maxHeartRateUsed")
+        if not max_hr:
+            return None
+        floors = {
+            f"Z{i}": int(entry[f"zone{i}Floor"])
+            for i in range(1, 6)
+            if entry.get(f"zone{i}Floor") is not None
+        }
+        return FetchedHRZones(
+            training_method=entry.get("trainingMethod") or "HR_MAX",
+            max_hr=int(max_hr),
+            resting_hr=entry.get("restingHeartRateUsed"),
+            lactate_threshold_hr=entry.get("lactateThresholdHeartRateUsed"),
+            zone_floors=floors,
         )
 
 

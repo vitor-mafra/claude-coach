@@ -107,17 +107,22 @@ HARD CONSTRAINTS (violating these is a failure):
 - Sessions on a day are an ORDERED list. When stacking run + strength, put the
   CARDIO FIRST (assumed AM) and STRENGTH SECOND (assumed PM).
 - A day NOT in `training_days` MUST be an empty list `[]`.
+- NEVER place any run on the same day as a lower-body strength session
+  ("inferiores", "lower"). Lower-body day = NO run, period.
+- Strength sessions (kind=strength) are ALLOWED only Monday through Friday.
+  NEVER place a strength session on Saturday or Sunday.
+- Sunday is reserved for the long/easy continuous run ONLY. If a continuous_run
+  template exists and Sunday is in training_days, it MUST go on Sunday, alone.
 
 SOFT PREFERENCES (apply within hard constraints, in priority order):
-1. AVOID stacking a hard run (interval_run, fartlek) with a heavy lower-body
-   strength session ("inferiores", "lower") on the same day.
-2. AVOID two strength sessions on the same day. Prefer run+strength stacking.
-3. WHEN stacking is necessary, prefer (easy run = continuous_run) + (strength).
-4. PREFER hard runs (interval_run, fartlek) on days WITHOUT lower-body strength
-   (so they stack with push/pull, not legs).
-5. PREFER the long/Sunday continuous run on Sunday if Sunday is a training day.
-6. PREFER alternating strength muscle focus (lower → push → pull → push) across days.
-7. PREFER at least one full rest day per week if training_days has 7 entries.
+1. STRONGLY PREFER stacking EVERY weekday run (Mon-Fri) with a non-lower
+   strength session on the same day. This athlete is hybrid and WANTS
+   cardio+strength stacked. Only leave a run alone when no compatible
+   (non-lower) strength session is free.
+2. PREFER hard runs (interval_run, fartlek) on days with push/pull strength.
+3. PREFER alternating strength muscle focus (lower → push → pull → push) across days.
+4. AVOID two strength sessions on the same day.
+5. PREFER at least one full rest day per week if training_days has 7 entries.
 
 Return JSON with this exact shape (no markdown, no prose outside the JSON):
 {

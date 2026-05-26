@@ -11,6 +11,7 @@ from claude_coach.api import (
     admin,
     auth,
     briefing,
+    calendar,
     dashboard,
     exercises,
     garmin,
@@ -71,6 +72,7 @@ app.include_router(sessions.router, prefix="/api")
 app.include_router(briefing.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+app.include_router(calendar.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 
 

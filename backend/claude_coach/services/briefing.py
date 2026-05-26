@@ -72,6 +72,13 @@ BRIEFING_SYSTEM = textwrap.dedent(
       manter ou baixar). Cite o número.
     - 1 dica técnica/mental opcional se houver padrão claro nas notas livres.
 
+    ### Corrida (quando houver)
+    Para CADA segmento de corrida planejado, cite a zona (Z1-Z5) E o intervalo
+    de bpm correspondente (use as zonas fornecidas no contexto, NÃO calcule por
+    %FCmax sozinho). Formato: "6× 500m em Z5 (185-206 bpm) — empurra forte".
+    Se houver dado Garmin do dia (HRV baixo, body battery baixo) sugira ajuste
+    pragmático (ex: "fica no piso da Z5, 185 bpm").
+
     Regras:
     - Nunca invente dados. Se uma métrica está ausente, omita ou diga "sem dado".
     - Não prescreva mais do que o que o plano pede (sem adicionar exercícios).
@@ -104,6 +111,12 @@ class GarminToday(BaseModel):
     sleep_7d_avg: float | None = None
 
 
+class HRZoneRef(BaseModel):
+    zone: str  # Z1..Z5
+    low_bpm: int
+    high_bpm: int
+
+
 class BriefingContext(BaseModel):
     date: date_cls
     workouts: list[PlannedWorkout]
@@ -111,6 +124,9 @@ class BriefingContext(BaseModel):
     garmin: GarminToday | None
     recent_activities: list[dict[str, Any]]  # last 7 days
     session_notes: list[str]  # last 5 free-text notes
+    hr_zones: list[HRZoneRef] = []
+    hr_max: int | None = None
+    hr_zones_source: str = "tanaka"  # "garmin" | "tanaka"
 
 
 @dataclass
@@ -275,6 +291,45 @@ def _recent_session_notes(db: DbSession, day: date_cls, limit: int = 5) -> list[
 # ----- Top-level builder -----
 
 
+def _resolve_hr_zones() -> tuple[list[HRZoneRef], int | None, str]:
+    """Resolve user's HR zones. Prefer live Garmin config; fall back to Tanaka."""
+    from claude_coach.adapters.garmin import adapter as garmin_adapter
+    from claude_coach.domain.calculations import (
+        hr_zone_bounds,
+        hr_zone_bounds_from_floors,
+    )
+    from claude_coach.services.profile import load_profile
+
+    try:
+        z = garmin_adapter.fetch_hr_zones()
+    except Exception as exc:
+        log.warning("briefing.hr_zones.garmin_fail", error=str(exc))
+        z = None
+
+    if z:
+        refs = [
+            HRZoneRef(
+                zone=zone,
+                low_bpm=hr_zone_bounds_from_floors(z.zone_floors, z.max_hr, zone)[0],
+                high_bpm=hr_zone_bounds_from_floors(z.zone_floors, z.max_hr, zone)[1],
+            )
+            for zone in ("Z1", "Z2", "Z3", "Z4", "Z5")
+            if zone in z.zone_floors
+        ]
+        return refs, z.max_hr, "garmin"
+
+    profile = load_profile()
+    if not profile:
+        return [], None, "tanaka"
+    fc_max = profile.fc_max_bpm
+    refs = [
+        HRZoneRef(zone=zone, low_bpm=hr_zone_bounds(fc_max, zone)[0],
+                  high_bpm=hr_zone_bounds(fc_max, zone)[1])
+        for zone in ("Z1", "Z2", "Z3", "Z4", "Z5")
+    ]
+    return refs, fc_max, "tanaka"
+
+
 def build_context(db: DbSession, day: date_cls) -> BriefingContext | None:
     active = load_active_plan()
     if not active:
@@ -295,6 +350,8 @@ def build_context(db: DbSession, day: date_cls) -> BriefingContext | None:
         for ex in seen.values()
     ]
 
+    hr_zones, hr_max, hr_source = _resolve_hr_zones()
+
     return BriefingContext(
         date=day,
         workouts=workouts,
@@ -302,6 +359,9 @@ def build_context(db: DbSession, day: date_cls) -> BriefingContext | None:
         garmin=_garmin_today(db, day),
         recent_activities=_recent_activities(db, day),
         session_notes=_recent_session_notes(db, day),
+        hr_zones=hr_zones,
+        hr_max=hr_max,
+        hr_zones_source=hr_source,
     )
 
 
@@ -340,6 +400,17 @@ def _render_prompt(ctx: BriefingContext) -> str:
                 f"{a.get('distance_km') or ''} HR {a.get('hr_avg') or '?'}"
             )
 
+    if ctx.hr_zones:
+        zone_lines = ", ".join(
+            f"{z.zone} {z.low_bpm}-{z.high_bpm}" for z in ctx.hr_zones
+        )
+        parts.append(
+            f"\n## Zonas de FC do atleta (fonte: {ctx.hr_zones_source}, FCmax {ctx.hr_max})"
+        )
+        parts.append(zone_lines)
+
+    zone_map = {z.zone: (z.low_bpm, z.high_bpm) for z in ctx.hr_zones}
+
     for w in ctx.workouts:
         parts.append(f"\n## Treino planejado: {w.name} ({w.kind})")
         for ex in w.exercises:
@@ -347,6 +418,18 @@ def _render_prompt(ctx: BriefingContext) -> str:
                 f"{s.set_idx}×{s.planned_reps or '?'}" for s in ex.sets
             )
             parts.append(f"- {ex.exercise_name} ({ex.kind}): {sets_desc}")
+        if w.run_segments:
+            parts.append("Segmentos da corrida:")
+            for seg in w.run_segments:
+                dist = f"{seg.distance_km}km" if seg.distance_km else None
+                dur = f"{seg.duration_min}min" if seg.duration_min else None
+                amount = dist or dur or "?"
+                bounds = zone_map.get(seg.hr_zone)
+                bpm = f" ({bounds[0]}-{bounds[1]} bpm)" if bounds else ""
+                note = f" — {seg.note}" if seg.note else ""
+                parts.append(
+                    f"- {seg.repeats}× {amount} @ {seg.hr_zone}{bpm}{note}"
+                )
 
     parts.append("\n## Histórico recente por exercício do treino")
     for h in ctx.exercises_history:

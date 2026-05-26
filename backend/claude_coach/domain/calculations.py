@@ -32,6 +32,19 @@ def epley_one_rm(weight_kg: float, reps: int) -> float:
 
 
 def hr_zone_bounds(fc_max: int, zone: HRZone) -> tuple[int, int]:
-    """Return (low_bpm, high_bpm) for a zone given the user's FCmax."""
+    """Return (low_bpm, high_bpm) for a zone given the user's FCmax (% HRmax)."""
     low, high = _ZONE_BOUNDS[zone]
     return (round(fc_max * low), round(fc_max * high))
+
+
+def hr_zone_bounds_from_floors(
+    floors: dict[str, int], max_hr: int, zone: HRZone
+) -> tuple[int, int]:
+    """Bounds from Garmin-defined zone floors. Z5 high = max_hr."""
+    order = ("Z1", "Z2", "Z3", "Z4", "Z5")
+    if zone not in floors:
+        return hr_zone_bounds(max_hr, zone)
+    idx = order.index(zone)
+    low = floors[zone]
+    high = floors[order[idx + 1]] - 1 if idx < 4 and order[idx + 1] in floors else max_hr
+    return (low, high)

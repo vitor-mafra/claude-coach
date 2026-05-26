@@ -90,6 +90,9 @@ function Shell() {
         <Link to="/briefing" className={linkClass}>
           Briefing
         </Link>
+        <Link to="/calendar" className={linkClass}>
+          Calendário
+        </Link>
         <Link to="/history" className={linkClass}>
           Histórico
         </Link>

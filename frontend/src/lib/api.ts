@@ -151,9 +151,20 @@ export const apiSessions = {
     ),
 };
 
+export type HRZonesResponse = {
+  training_method: string;
+  max_hr: number;
+  resting_hr: number | null;
+  lactate_threshold_hr: number | null;
+  zone_floors: Record<string, number>;
+  zone_bounds: Record<string, [number, number]>;
+};
+
 export const apiGarmin = {
   sync: (date?: string) =>
     sendJSON<GarminSyncResponse>(`/garmin/sync${date ? `?date=${date}` : ""}`, "POST"),
+  hrZones: (syncProfile = true) =>
+    getJSON<HRZonesResponse>(`/garmin/hr-zones?sync_profile=${syncProfile}`),
   runs: (limit = 20) => getJSON<unknown[]>(`/garmin/runs?limit=${limit}`),
   daily: (params?: { start?: string; end?: string; limit?: number }) => {
     const qs = new URLSearchParams();
@@ -187,6 +198,36 @@ export const apiBriefing = {
 
 export const apiDashboard = {
   get: () => getJSON<Dashboard>("/dashboard"),
+};
+
+export type CalendarActivity = {
+  source: "garmin" | "session" | "linked";
+  kind: "run" | "strength" | "other";
+  label: string;
+  sport_type: string | null;
+  distance_km: number | null;
+  duration_min: number | null;
+  session_id: number | null;
+  activity_id: number | null;
+};
+
+export type CalendarDay = {
+  date: string;
+  activities: CalendarActivity[];
+  planned_count: number;
+  done_count: number;
+  goal_met: boolean;
+  is_rest_day: boolean;
+};
+
+export type CalendarResponse = {
+  month: string;
+  days: CalendarDay[];
+};
+
+export const apiCalendar = {
+  // month: "YYYY-MM"
+  get: (month: string) => getJSON<CalendarResponse>(`/calendar?month=${month}`),
 };
 
 export type AuthStatus = Schemas["AuthStatus"];

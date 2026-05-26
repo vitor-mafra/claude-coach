@@ -137,7 +137,12 @@ function HomePage() {
   });
 
   const refresh = useMutation({
-    mutationFn: () => apiGarmin.sync(),
+    mutationFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+      // Pull yesterday for sleep close-out + today for live metrics.
+      await Promise.all([apiGarmin.sync(yesterday), apiGarmin.sync(today)]);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["workouts-today-home"] });
@@ -230,6 +235,47 @@ function HomePage() {
         </section>
       )}
 
+      {/* Plan + today's workout */}
+      {activeSlug && (
+        <section className="border border-zinc-800 rounded-lg p-4 bg-zinc-900/40">
+          <div className="flex items-baseline justify-between mb-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-zinc-500">Plano ativo</p>
+              <p className="font-semibold">{activeSlug}</p>
+            </div>
+            <Link
+              to="/plan/$slug"
+              params={{ slug: activeSlug }}
+              className="text-sm text-orange-300 hover:text-orange-200"
+            >
+              ver detalhes →
+            </Link>
+          </div>
+
+          {workoutsToday.data?.is_rest_day ? (
+            <p className="text-sm text-zinc-400">Hoje é dia de descanso.</p>
+          ) : workoutsToday.data?.workouts.length ? (
+            <div className="space-y-2">
+              {workoutsToday.data.workouts.map((w) => (
+                <div key={w.template_id} className="text-sm">
+                  <p className="font-semibold">{w.name}</p>
+                  <p className="text-zinc-500">
+                    {w.kind === "run" ? "Corrida" : "Força"} ·{" "}
+                    {w.exercises.length} exercícios
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {plans.data && activeSlug && (
+            <PlanWeek slug={activeSlug} />
+          )}
+        </section>
+      )}
+
+      <HRZonesCard />
+
       <section className="grid lg:grid-cols-2 gap-3">
         <article className="border border-zinc-800 rounded-lg p-3 bg-zinc-900/40">
           <h3 className="text-xs uppercase tracking-wider text-zinc-500 mb-1">
@@ -270,45 +316,6 @@ function HomePage() {
         </article>
       </section>
 
-      {/* Plan + today's workout */}
-      {activeSlug && (
-        <section className="border border-zinc-800 rounded-lg p-4 bg-zinc-900/40">
-          <div className="flex items-baseline justify-between mb-3">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-zinc-500">Plano ativo</p>
-              <p className="font-semibold">{activeSlug}</p>
-            </div>
-            <Link
-              to="/plan/$slug"
-              params={{ slug: activeSlug }}
-              className="text-sm text-orange-300 hover:text-orange-200"
-            >
-              ver detalhes →
-            </Link>
-          </div>
-
-          {workoutsToday.data?.is_rest_day ? (
-            <p className="text-sm text-zinc-400">Hoje é dia de descanso.</p>
-          ) : workoutsToday.data?.workouts.length ? (
-            <div className="space-y-2">
-              {workoutsToday.data.workouts.map((w) => (
-                <div key={w.template_id} className="text-sm">
-                  <p className="font-semibold">{w.name}</p>
-                  <p className="text-zinc-500">
-                    {w.kind === "run" ? "Corrida" : "Força"} ·{" "}
-                    {w.exercises.length} exercícios
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {plans.data && activeSlug && (
-            <PlanWeek slug={activeSlug} />
-          )}
-        </section>
-      )}
-
       {acts.length > 0 && (
         <section>
           <h3 className="text-xs uppercase tracking-wider text-zinc-500 mb-2">
@@ -335,6 +342,56 @@ function HomePage() {
         </section>
       )}
     </div>
+  );
+}
+
+function HRZonesCard() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["garmin-hr-zones"],
+    queryFn: () => apiGarmin.hrZones(true),
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+  if (isLoading)
+    return (
+      <article className="border border-zinc-800 rounded-lg p-3 bg-zinc-900/40 text-sm text-zinc-500">
+        Carregando zonas de FC…
+      </article>
+    );
+  if (error || !data) return null;
+  const order: Array<"Z1" | "Z2" | "Z3" | "Z4" | "Z5"> = ["Z1", "Z2", "Z3", "Z4", "Z5"];
+  const colors: Record<string, string> = {
+    Z1: "bg-emerald-900/40 text-emerald-200",
+    Z2: "bg-sky-900/40 text-sky-200",
+    Z3: "bg-amber-900/40 text-amber-200",
+    Z4: "bg-orange-900/40 text-orange-200",
+    Z5: "bg-rose-900/40 text-rose-200",
+  };
+  return (
+    <article className="border border-zinc-800 rounded-lg p-4 bg-zinc-900/40">
+      <div className="flex items-baseline justify-between mb-2">
+        <h3 className="text-xs uppercase tracking-wider text-zinc-500">
+          Zonas de FC (Garmin) · FCmax {data.max_hr}
+        </h3>
+        <span className="text-[10px] uppercase tracking-wider text-zinc-600">
+          {data.training_method}
+        </span>
+      </div>
+      <div className="grid grid-cols-5 gap-2">
+        {order.map((z) => {
+          const b = data.zone_bounds[z];
+          if (!b) return null;
+          return (
+            <div
+              key={z}
+              className={`rounded p-2 text-center ${colors[z]}`}
+            >
+              <div className="text-xs font-semibold">{z}</div>
+              <div className="text-sm font-mono">{b[0]}-{b[1]}</div>
+            </div>
+          );
+        })}
+      </div>
+    </article>
   );
 }
 

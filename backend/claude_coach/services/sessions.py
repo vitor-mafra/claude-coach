@@ -49,6 +49,16 @@ class PlannedExercise(BaseModel):
     notes: str | None = None
 
 
+class PlannedRunSegment(BaseModel):
+    block_idx: int
+    block_kind: str  # interval_run | continuous_run | fartlek
+    repeats: int
+    distance_km: float | None = None
+    duration_min: float | None = None
+    hr_zone: str  # Z1..Z5
+    note: str | None = None
+
+
 class PlannedWorkout(BaseModel):
     plan_slug: str
     template_id: str
@@ -56,6 +66,7 @@ class PlannedWorkout(BaseModel):
     kind: str  # strength | run
     date: date_cls
     exercises: list[PlannedExercise]
+    run_segments: list[PlannedRunSegment] = []
 
 
 # ─── Plan → PlannedWorkout ────────────────────────────────────────────────────
@@ -145,8 +156,29 @@ def _flatten_block(
                 notes=block.description,
             )
         ]
-    # Tabata / Run / Fartlek: not strength-loggable in MVP — skip silently.
+    # Tabata: skip silently (not strength-loggable in MVP).
+    # Run blocks: emitted as run_segments separately (see _flatten_run_segments).
     return []
+
+
+def _flatten_run_segments(template: WorkoutTemplate) -> list[PlannedRunSegment]:
+    out: list[PlannedRunSegment] = []
+    for idx, block in enumerate(template.blocks):
+        if block.kind not in ("interval_run", "continuous_run", "fartlek"):
+            continue
+        for seg in block.segments:
+            out.append(
+                PlannedRunSegment(
+                    block_idx=idx,
+                    block_kind=block.kind,
+                    repeats=seg.repeats,
+                    distance_km=seg.distance_km,
+                    duration_min=seg.duration_min,
+                    hr_zone=seg.hr_zone,
+                    note=seg.note,
+                )
+            )
+    return out
 
 
 def workout_for_date(
@@ -177,6 +209,7 @@ def planned_workout(
         kind=template.kind,
         date=day,
         exercises=exercises,
+        run_segments=_flatten_run_segments(template),
     )
 
 

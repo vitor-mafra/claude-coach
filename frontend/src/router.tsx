@@ -4,6 +4,7 @@ import {
   Route as briefingRoute,
   DetailRoute as briefingDetailRoute,
 } from "./routes/briefing";
+import { Route as calendarRoute } from "./routes/calendar";
 import { Route as exercisesRoute } from "./routes/exercises";
 import {
   Route as reportsRoute,
@@ -23,6 +24,7 @@ import { Route as rootRoute } from "./routes/__root";
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
+  calendarRoute,
   plansRoute,
   planDetailRoute,
   exercisesRoute,
