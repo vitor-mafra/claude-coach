@@ -211,9 +211,17 @@ export type CalendarActivity = {
   activity_id: number | null;
 };
 
+export type CalendarMeditation = {
+  id: number;
+  duration_min: number | null;
+  source: string;
+  note: string | null;
+};
+
 export type CalendarDay = {
   date: string;
   activities: CalendarActivity[];
+  meditations: CalendarMeditation[];
   planned_count: number;
   done_count: number;
   goal_met: boolean;
@@ -228,6 +236,25 @@ export type CalendarResponse = {
 export const apiCalendar = {
   // month: "YYYY-MM"
   get: (month: string) => getJSON<CalendarResponse>(`/calendar?month=${month}`),
+};
+
+export type Meditation = {
+  id: number;
+  date: string;
+  duration_min: number | null;
+  source: string;
+  note: string | null;
+};
+
+export const apiMeditation = {
+  create: (payload: {
+    date: string;
+    duration_min?: number | null;
+    source?: string;
+    note?: string | null;
+    external_id?: string | null;
+  }) => sendJSON<Meditation>("/meditation", "POST", payload),
+  delete: (id: number) => sendJSON<void>(`/meditation/${id}`, "DELETE"),
 };
 
 export type AuthStatus = Schemas["AuthStatus"];

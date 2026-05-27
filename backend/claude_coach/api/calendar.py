@@ -21,7 +21,11 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
-from claude_coach.db.models import GarminActivity, Session as SessionRow
+from claude_coach.db.models import (
+    GarminActivity,
+    MeditationSession,
+    Session as SessionRow,
+)
 from claude_coach.db.session import get_db
 from claude_coach.domain.plan import Plan
 from claude_coach.services.plan_repo import load_plan
@@ -46,9 +50,17 @@ class CalendarActivity(BaseModel):
     activity_id: int | None = None
 
 
+class CalendarMeditation(BaseModel):
+    id: int
+    duration_min: int | None = None
+    source: str
+    note: str | None = None
+
+
 class CalendarDay(BaseModel):
     date: date_cls
     activities: list[CalendarActivity]
+    meditations: list[CalendarMeditation]
     planned_count: int
     done_count: int
     goal_met: bool
@@ -135,6 +147,15 @@ def calendar(
         .scalars()
         .all()
     )
+    meditations = (
+        db.execute(
+            select(MeditationSession).where(
+                MeditationSession.date >= first, MeditationSession.date <= last
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     # Resolve the active plan once (for the weekly target) and cache plan loads
     # so session labels can come from each session's own plan.
@@ -192,21 +213,33 @@ def calendar(
             )
         )
 
+    # Meditation is a separate track — grouped per day, never counted toward the
+    # training target.
+    meds_by_day: dict[date_cls, list[CalendarMeditation]] = defaultdict(list)
+    for m in meditations:
+        meds_by_day[m.date].append(
+            CalendarMeditation(
+                id=m.id, duration_min=m.duration_min, source=m.source, note=m.note
+            )
+        )
+
     days: list[CalendarDay] = []
     d = first
     while d <= last:
         acts = by_day.get(d, [])
+        meds = meds_by_day.get(d, [])
         planned = (
             len(active_plan.schedule.get(WEEKDAY_BY_INDEX[d.weekday()], []))
             if active_plan
             else 0
         )
         done = len(acts)
-        if acts or planned:
+        if acts or meds or planned:
             days.append(
                 CalendarDay(
                     date=d,
                     activities=acts,
+                    meditations=meds,
                     planned_count=planned,
                     done_count=done,
                     goal_met=planned > 0 and done >= planned,

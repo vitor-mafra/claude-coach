@@ -165,3 +165,23 @@ class BodyMetric(Base):
     body_fat_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
     lean_mass_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     source: Mapped[str] = mapped_column(String(16), default="garmin")
+
+
+class MeditationSession(Base):
+    """A mindfulness/meditation session, tracked separately from training.
+
+    `source` distinguishes manual entries from any future automated ingest
+    (e.g., a Tasker/Google Fit poller POSTing here): manual | headspace | other.
+    """
+
+    __tablename__ = "meditation_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    date: Mapped[date_cls] = mapped_column(Date, index=True)
+    duration_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source: Mapped[str] = mapped_column(String(32), default="manual")
+    note: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Idempotency key for automated ingests (e.g., a provider session id) so the
+    # same external session isn't inserted twice. NULL for manual entries.
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

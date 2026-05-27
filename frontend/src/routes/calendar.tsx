@@ -1,8 +1,8 @@
 import { createRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiCalendar, type CalendarActivity, type CalendarDay } from "@/lib/api";
+import { apiCalendar, apiMeditation, type CalendarActivity, type CalendarDay } from "@/lib/api";
 import { Route as rootRoute } from "./__root";
 
 const WEEK_HEADERS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -58,6 +58,7 @@ function DayCell({
   const planned = data?.planned_count ?? 0;
   const missed = isPast && planned > 0 && !met; // planned but target not hit
   const acts = data?.activities ?? [];
+  const meds = data?.meditations ?? [];
 
   let bg = "bg-zinc-900/30 border-zinc-800";
   if (!inMonth) bg = "bg-transparent border-transparent text-zinc-700";
@@ -85,27 +86,31 @@ function DayCell({
       {met && (
         <span className="absolute top-1 right-1 text-emerald-400 text-xs leading-none">✓</span>
       )}
-      {inMonth && acts.length > 0 && (
+      {inMonth && meds.length > 0 && (
+        <span className="absolute top-0.5 left-0.5 text-[10px] leading-none">🧘</span>
+      )}
+      {inMonth && (acts.length > 0 || meds.length > 0 || planned > 0) && (
         <div className="absolute bottom-1 left-1 right-1 flex flex-wrap gap-0.5">
           {acts.slice(0, 4).map((a, i) => (
-            <span key={i} className={`h-1.5 w-1.5 rounded-full ${KIND_DOT[a.kind]}`} />
+            <span key={`a${i}`} className={`h-1.5 w-1.5 rounded-full ${KIND_DOT[a.kind]}`} />
           ))}
           {acts.length > 4 && (
             <span className="text-[9px] leading-none text-zinc-400">+{acts.length - 4}</span>
           )}
-        </div>
-      )}
-      {inMonth && acts.length === 0 && planned > 0 && (
-        // planned day with nothing done yet: hollow markers
-        <div className="absolute bottom-1 left-1 right-1 flex gap-0.5">
-          {Array.from({ length: Math.min(planned, 3) }).map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 w-1.5 rounded-full border ${
-                missed ? "border-red-700" : "border-zinc-600"
-              }`}
-            />
+          {meds.map((_, i) => (
+            <span key={`m${i}`} className="h-1.5 w-1.5 rounded-full bg-violet-400" />
           ))}
+          {acts.length === 0 &&
+            planned > 0 &&
+            // planned day with no training done yet: hollow markers
+            Array.from({ length: Math.min(planned, 3) }).map((_, i) => (
+              <span
+                key={`p${i}`}
+                className={`h-1.5 w-1.5 rounded-full border ${
+                  missed ? "border-red-700" : "border-zinc-600"
+                }`}
+              />
+            ))}
         </div>
       )}
     </button>
@@ -119,10 +124,27 @@ function CalendarPage() {
   });
   const [selected, setSelected] = useState<string | null>(null);
 
+  const [medMin, setMedMin] = useState("");
+  const qc = useQueryClient();
+
   const mk = monthKey(cursor);
   const { data, isLoading } = useQuery({
     queryKey: ["calendar", mk],
     queryFn: () => apiCalendar.get(mk),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["calendar", mk] });
+  const addMed = useMutation({
+    mutationFn: (min: number | null) =>
+      apiMeditation.create({ date: selected!, duration_min: min, source: "manual" }),
+    onSuccess: () => {
+      setMedMin("");
+      invalidate();
+    },
+  });
+  const delMed = useMutation({
+    mutationFn: (id: number) => apiMeditation.delete(id),
+    onSuccess: invalidate,
   });
 
   const byDate = useMemo(() => {
@@ -229,6 +251,9 @@ function CalendarPage() {
           <span className="h-2 w-2 rounded-full bg-zinc-400" /> outro
         </span>
         <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-violet-400" /> 🧘 meditação
+        </span>
+        <span className="flex items-center gap-1">
           <span className="text-emerald-400">✓</span> meta batida
         </span>
         <span className="flex items-center gap-1">
@@ -277,6 +302,49 @@ function CalendarPage() {
               ))}
             </ul>
           )}
+
+          {/* Meditação — track separado */}
+          <div className="border-t border-zinc-800 pt-2 space-y-1.5">
+            <p className="text-xs font-medium text-violet-300">🧘 Meditação</p>
+            {selectedDay?.meditations.map((m) => (
+              <div key={m.id} className="flex items-center gap-2 text-sm">
+                <span className="h-2 w-2 rounded-full shrink-0 bg-violet-400" />
+                <span className="text-zinc-200">
+                  {m.duration_min != null ? `${m.duration_min} min` : "sessão"}
+                </span>
+                {m.note && <span className="text-zinc-500 text-xs truncate">{m.note}</span>}
+                <button
+                  type="button"
+                  onClick={() => delMed.mutate(m.id)}
+                  className="ml-auto text-xs text-zinc-500 hover:text-red-400"
+                  title="remover"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={medMin}
+                onChange={(e) => setMedMin(e.target.value)}
+                placeholder="min"
+                className="w-20 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm"
+              />
+              <button
+                type="button"
+                disabled={addMed.isPending}
+                onClick={() =>
+                  addMed.mutate(medMin.trim() === "" ? null : Number(medMin))
+                }
+                className="text-sm px-2 py-1 rounded bg-violet-700 hover:bg-violet-600 font-semibold disabled:opacity-50"
+              >
+                + meditação
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

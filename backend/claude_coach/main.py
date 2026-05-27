@@ -17,6 +17,7 @@ from claude_coach.api import (
     garmin,
     health,
     llm,
+    meditation,
     plans,
     profile,
     reports,
@@ -73,6 +74,7 @@ app.include_router(briefing.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(calendar.router, prefix="/api")
+app.include_router(meditation.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 
 
